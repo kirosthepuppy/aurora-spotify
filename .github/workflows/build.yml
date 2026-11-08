@@ -1,0 +1,56 @@
+name: Build Aurora
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      package_ipa:
+        description: 'Package your IPA from the SPOTIFY_IPA_URL repository secret'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  packaging-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: make test
+  native:
+    runs-on: macos-15
+    needs: packaging-tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native arm64 dylib
+        run: make build
+      - name: Build simulator harness
+        run: make harness
+      - name: Upload tweak and harness
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aurora-native
+          path: |
+            build/Aurora.dylib
+            build/AuroraHarness.app/
+          retention-days: 7
+      - name: Download your IPA
+        if: github.event_name == 'workflow_dispatch' && inputs.package_ipa
+        env:
+          SPOTIFY_IPA_URL: ${{ secrets.SPOTIFY_IPA_URL }}
+        run: |
+          test -n "$SPOTIFY_IPA_URL" || { echo 'Configure the SPOTIFY_IPA_URL repository secret first.'; exit 1; }
+          curl --fail --location --silent --show-error --proto '=https' --proto-redir '=https' --max-filesize 1073741824 --max-time 300 --output build/Spotify.ipa "$SPOTIFY_IPA_URL"
+      - name: Package unsigned IPA
+        if: github.event_name == 'workflow_dispatch' && inputs.package_ipa
+        run: python3 scripts/package_ipa.py --ipa build/Spotify.ipa --dylib build/Aurora.dylib --output build/Spotify-Aurora-unsigned.ipa
+      - name: Upload personal unsigned IPA
+        if: github.event_name == 'workflow_dispatch' && inputs.package_ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Spotify-Aurora-unsigned
+          path: build/Spotify-Aurora-unsigned.ipa
+          retention-days: 1

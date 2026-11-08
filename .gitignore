@@ -1,0 +1,11 @@
+build/
+*.ipa
+*.dylib
+*.p12
+*.mobileprovision
+*.cer
+*.key
+.signing.env
+.DS_Store
+__pycache__/
+*.pyc
