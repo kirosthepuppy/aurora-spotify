@@ -103,4 +103,4 @@ Before calling a version supported, follow [the device validation checklist](doc
 
 ## License and attribution
 
-Aurora's original code is MIT licensed. This project includes no Chroma source or assets and is not a Chroma fork. Chroma's current source license restricts modifications and redistribution: [upstream license](https://github.com/skopevoj/spoti.pw/blob/main/LICENSE). Spotify and Chroma belong to their respective owners; this independent project is not affiliated with either.
+Aurora is distributed under the repository’s GNU AGPL v3 license; see LICENSE. This project includes no Chroma source or assets and is not a Chroma fork. Chroma's current source license restricts modifications and redistribution: [upstream license](https://github.com/skopevoj/spoti.pw/blob/main/LICENSE). Spotify and Chroma belong to their respective owners; this independent project is not affiliated with either.
