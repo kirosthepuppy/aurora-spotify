@@ -55,7 +55,7 @@ python3 scripts/package_ipa.py \
 
 The input must be a decrypted, thin arm64 Spotify app (`com.spotify.client`). The packager adds `@executable_path/Frameworks/Aurora.dylib` to the executable only if there is sufficient zeroed Mach-O header padding. It preserves executable offsets and ZIP metadata, removes stale signature resources/provisioning, and leaves the original IPA unchanged. It does **not** decrypt or sign the app. Universal/fat inputs, malformed binaries, and insufficient padding are rejected rather than rewritten.
 
-Sign the resulting IPA with your preferred iOS signing tool and your own provisioning credentials. The signer must re-sign all nested code, including the new dylib and any extensions, and provision the app correctly. Existing Mach-O signatures become invalid after injection. Signing failures and extension entitlements depend on your input IPA and signer. Aurora's injection guard expects Spotify's original bundle identifier; changing it requires updating the guard and reviewing integration behavior.
+Sign the resulting IPA with your preferred iOS signing tool and your own provisioning credentials. The signer must re-sign all nested code, including the new dylib and any extensions, and provision the app correctly. Existing Mach-O signatures become invalid after injection. Signing failures and extension entitlements depend on your input IPA and signer. Aurora loads when the bundle identifier is `com.spotify.client` or the app executable is still named `Spotify`, so signers that assign a new bundle identifier are supported.
 
 ## Use on-device
 

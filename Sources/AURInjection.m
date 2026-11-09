@@ -68,7 +68,9 @@ void AURInstallLauncher(void) {
 #ifndef AUR_HARNESS
 __attribute__((constructor)) static void AURInitialize(void) {
     @autoreleasepool {
-        if(![NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.spotify.client"])return;
+        // Re-signed copies often get a new bundle ID; Spotify's executable name stays the same.
+        NSBundle *bundle=NSBundle.mainBundle;
+        if(![bundle.bundleIdentifier isEqualToString:@"com.spotify.client"]&&![[bundle objectForInfoDictionaryKey:@"CFBundleExecutable"] isEqual:@"Spotify"])return;
         // Only intercept the public metadata setter; no Spotify class names or feature flags.
         Method method=class_getInstanceMethod(MPNowPlayingInfoCenter.class,@selector(setNowPlayingInfo:));
         if(method){AURPreviousSetInfo=(void (*)(id,SEL,NSDictionary *))method_getImplementation(method);method_setImplementation(method,(IMP)AURSetInfo);}
