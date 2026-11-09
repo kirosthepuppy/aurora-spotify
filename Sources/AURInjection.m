@@ -3,8 +3,14 @@
 
 static void (*AURPreviousSetInfo)(id,SEL,NSDictionary *);
 static void AURSetInfo(id self, SEL selector, NSDictionary *info) {
-    AURPreviousSetInfo(self,selector,info);
-    [AURPlayback.shared receiveInfo:info];
+    // Spotify may send back a dictionary it read from us; keep its own artwork as the source of truth.
+    NSDictionary *original = info ? AURLockScreenUndecorate(info) : nil;
+    AURPreviousSetInfo(self,selector,original ? AURLockScreenDecorate(original) : nil);
+    [AURPlayback.shared receiveInfo:original];
+}
+static void AURApplyNowPlaying(NSDictionary *info) {
+    // Called on the main queue by the lock-screen lyrics timer; skips the hook above.
+    if(AURPreviousSetInfo) AURPreviousSetInfo(MPNowPlayingInfoCenter.defaultCenter,@selector(setNowPlayingInfo:),info);
 }
 static const void *AURButtonKey=&AURButtonKey;
 static const void *AURGestureKey=&AURGestureKey;
@@ -74,7 +80,11 @@ __attribute__((constructor)) static void AURInitialize(void) {
         // Only intercept the public metadata setter; no Spotify class names or feature flags.
         Method method=class_getInstanceMethod(MPNowPlayingInfoCenter.class,@selector(setNowPlayingInfo:));
         if(method){AURPreviousSetInfo=(void (*)(id,SEL,NSDictionary *))method_getImplementation(method);method_setImplementation(method,(IMP)AURSetInfo);}
-        dispatch_async(dispatch_get_main_queue(),^{AURInstallLauncher();});
+        dispatch_async(dispatch_get_main_queue(),^{
+            AURInstallLauncher();
+            [AURLyrics shared];
+            AURLockScreenStart(AURApplyNowPlaying);
+        });
     }
 }
 #endif

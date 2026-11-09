@@ -12,7 +12,7 @@ xcrun --sdk iphoneos clang -dynamiclib -arch arm64 -isysroot "$sdk" \
   -Wno-unused-parameter -Werror=return-type \
   -install_name @rpath/Aurora.dylib \
   -framework Foundation -framework UIKit -framework MediaPlayer \
-  -framework QuartzCore -framework UniformTypeIdentifiers \
-  Sources/AURCore.m Sources/AURPlayer.m Sources/AURInjection.m \
+  -framework QuartzCore -framework CoreImage -framework UniformTypeIdentifiers \
+  Sources/AURCore.m Sources/AURLyrics.m Sources/AURLockScreen.m Sources/AURPlayer.m Sources/AURInjection.m \
   -o build/Aurora.dylib
 printf 'Built build/Aurora.dylib\n'

@@ -29,6 +29,38 @@ jobs:
         run: make build
       - name: Build simulator harness
         run: make harness
+      - name: Screenshot the simulator harness
+        run: |
+          udid="$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          phones = [d for runtime, items in devices.items() if 'iOS' in runtime for d in items if d['name'].startswith('iPhone')]
+          print(sorted(phones, key=lambda d: ('Pro' not in d['name'], d['name']), reverse=True)[0]['udid'])")"
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl status_bar "$udid" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 || true
+          xcrun simctl install "$udid" build/AuroraHarness.app
+          mkdir -p build/screens
+          shot() {
+            name="$1"; shift
+            xcrun simctl terminate "$udid" dev.aurora.harness 2>/dev/null || true
+            xcrun simctl launch --console-pty "$udid" dev.aurora.harness "$@" > "build/screens/$name.log" 2>&1 &
+            sleep 8
+            xcrun simctl io "$udid" screenshot "build/screens/$name.png"
+          }
+          shot player -AURScreen player -AURElapsed 9.2 -AURPaused YES
+          shot sideways -AURScreen sideways -AURElapsed 5.3 -AURPaused YES
+          shot lockscreen -AURScreen lockscreen -AURElapsed 8.6 -AURPaused YES
+          xcrun simctl terminate "$udid" dev.aurora.harness 2>/dev/null || true
+          sips -r 270 build/screens/sideways.png >/dev/null
+          cat build/screens/player.log
+          grep -q 'Aurora parser checks passed' build/screens/player.log || { echo '::error::Harness parser checks did not pass.'; exit 1; }
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aurora-screenshots
+          path: build/screens/*.png
+          retention-days: 14
       - name: Upload tweak and harness
         uses: actions/upload-artifact@v4
         with:

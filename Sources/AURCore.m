@@ -26,7 +26,8 @@ UIVisualEffect *AURGlass(void) {
     static NSUserDefaults *store; static dispatch_once_t once;
     dispatch_once(&once, ^{
         store = [[NSUserDefaults alloc] initWithSuiteName:@"dev.aurora.spotify"];
-        [store registerDefaults:@{@"launcher":@YES, @"motion":@YES, @"artworkColor":@YES, @"black":@NO, @"accent":@0}];
+        [store registerDefaults:@{@"launcher":@YES, @"motion":@YES, @"artworkColor":@YES, @"black":@NO, @"accent":@0,
+                                  @"onlineLyrics":@YES, @"lockLyrics":@YES, @"sideways":@YES}];
     }); return store;
 }
 + (BOOL)boolForKey:(NSString *)key { return [[self store] boolForKey:key]; }
@@ -50,35 +51,6 @@ UIVisualEffect *AURGlass(void) {
     return directory;
 }
 @end
-@implementation AURLyricLine
-+ (NSArray<AURLyricLine *> *)parse:(NSString *)text {
-    NSRegularExpression *timestamps = [NSRegularExpression regularExpressionWithPattern:@"\\[(\\d+):([0-5]\\d)(?:[.:](\\d{1,3}))?\\]" options:0 error:NULL];
-    NSRegularExpression *offsetPattern = [NSRegularExpression regularExpressionWithPattern:@"\\[offset:([+-]?\\d+)\\]" options:NSRegularExpressionCaseInsensitive error:NULL];
-    NSTextCheckingResult *offsetMatch = [offsetPattern firstMatchInString:text options:0 range:NSMakeRange(0,text.length)];
-    double offset = offsetMatch ? [[text substringWithRange:[offsetMatch rangeAtIndex:1]] doubleValue]/1000.0 : 0;
-    NSMutableArray *lines = [NSMutableArray array];
-    for (NSString *raw in [text componentsSeparatedByCharactersInSet:NSCharacterSet.newlineCharacterSet]) {
-        NSArray<NSTextCheckingResult *> *matches = [timestamps matchesInString:raw options:0 range:NSMakeRange(0,raw.length)];
-        if (!matches.count) continue;
-        NSString *words = [[raw substringFromIndex:NSMaxRange(matches.lastObject.range)] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
-        for (NSTextCheckingResult *match in matches) {
-            AURLyricLine *line = [AURLyricLine new];
-            double minutes = [[raw substringWithRange:[match rangeAtIndex:1]] doubleValue];
-            double seconds = [[raw substringWithRange:[match rangeAtIndex:2]] doubleValue];
-            NSRange fraction = [match rangeAtIndex:3];
-            double millis = fraction.location == NSNotFound ? 0 : [[raw substringWithRange:fraction] doubleValue]/pow(10, fraction.length);
-            line.time = MAX(0, minutes*60+seconds+millis+offset); line.text = words;
-            [lines addObject:line];
-        }
-    }
-    return [lines sortedArrayUsingComparator:^NSComparisonResult(AURLyricLine *a, AURLyricLine *b) {
-        if (a.time < b.time) return NSOrderedAscending;
-        if (a.time > b.time) return NSOrderedDescending;
-        return NSOrderedSame;
-    }];
-}
-@end
-
 typedef BOOL (*AURSendCommand)(unsigned int, CFDictionaryRef);
 typedef void (*AURSetElapsed)(double);
 @interface AURPlayback ()

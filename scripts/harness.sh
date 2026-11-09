@@ -12,8 +12,8 @@ xcrun --sdk iphonesimulator clang -arch "$arch" -isysroot "$sdk" \
   -target "$arch-apple-ios16.0-simulator" -fobjc-arc -fmodules -DAUR_HARNESS \
   -Wall -Wextra -Wno-unused-parameter -ISources \
   -framework Foundation -framework UIKit -framework MediaPlayer \
-  -framework QuartzCore -framework UniformTypeIdentifiers \
-  Sources/AURCore.m Sources/AURPlayer.m Sources/AURInjection.m Harness/main.m \
+  -framework QuartzCore -framework CoreImage -framework UniformTypeIdentifiers \
+  Sources/AURCore.m Sources/AURLyrics.m Sources/AURLockScreen.m Sources/AURPlayer.m Sources/AURInjection.m Harness/main.m \
   -o "$app/AuroraHarness"
 python3 - <<'PY'
 import plistlib
