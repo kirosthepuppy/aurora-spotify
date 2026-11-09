@@ -27,7 +27,7 @@ UIVisualEffect *AURGlass(void) {
     dispatch_once(&once, ^{
         store = [[NSUserDefaults alloc] initWithSuiteName:@"dev.aurora.spotify"];
         [store registerDefaults:@{@"launcher":@YES, @"motion":@YES, @"artworkColor":@YES, @"black":@NO, @"accent":@0,
-                                  @"onlineLyrics":@YES, @"lockLyrics":@YES, @"sideways":@YES}];
+                                  @"onlineLyrics":@YES, @"livingArtwork":@YES, @"lockLyrics":@YES, @"sideways":@YES}];
     }); return store;
 }
 + (BOOL)boolForKey:(NSString *)key { return [[self store] boolForKey:key]; }

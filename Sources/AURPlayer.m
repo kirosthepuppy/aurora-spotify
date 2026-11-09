@@ -44,6 +44,7 @@ static CGFloat AURLineAlpha(NSInteger distance) {
 /// Full-screen lyrics for a phone held sideways: big lines, controls only after a tap.
 @interface AURSidewaysView : UIView
 @property(nonatomic,strong) CAGradientLayer *gradient;
+@property(nonatomic,strong) AURLivingArtwork *living;
 @property(nonatomic,strong) UIImageView *artwork;
 @property(nonatomic,strong) UILabel *song;
 @property(nonatomic,strong) UILabel *artist;
@@ -62,6 +63,7 @@ static CGFloat AURLineAlpha(NSInteger distance) {
     self.accessibilityViewIsModal=YES;
     self.gradient=[CAGradientLayer layer];self.gradient.startPoint=CGPointMake(0,0);self.gradient.endPoint=CGPointMake(1,1);
     [self.layer addSublayer:self.gradient];
+    self.living=[[AURLivingArtwork alloc] initWithFrame:CGRectZero];self.living.hidden=YES;[self addSubview:self.living];
     self.artwork=[UIImageView new];self.artwork.contentMode=UIViewContentModeScaleAspectFill;self.artwork.layer.cornerRadius=18;self.artwork.clipsToBounds=YES;
     self.song=AURLabel(17,UIFontWeightBold);self.song.numberOfLines=2;
     self.artist=AURLabel(14,UIFontWeightRegular);self.artist.textColor=[UIColor colorWithWhite:1 alpha:.6];self.artist.numberOfLines=1;
@@ -97,7 +99,7 @@ static CGFloat AURLineAlpha(NSInteger distance) {
     [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(showControls)]];
     return self;
 }
-- (void)layoutSubviews {[super layoutSubviews];self.gradient.frame=self.bounds;}
+- (void)layoutSubviews {[super layoutSubviews];self.gradient.frame=self.bounds;self.living.frame=self.bounds;}
 - (void)showControls {
     [UIView animateWithDuration:.2 animations:^{self.controls.alpha=1;}];
     [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(hideControls) object:nil];
@@ -120,6 +122,7 @@ static CGFloat AURLineAlpha(NSInteger distance) {
 
 @interface AURPlayerController () <UIDocumentPickerDelegate, UITableViewDataSource, UITableViewDelegate>
 @property(nonatomic, strong) CAGradientLayer *aura;
+@property(nonatomic, strong) AURLivingArtwork *living;
 @property(nonatomic, strong) UIImageView *artwork;
 @property(nonatomic, strong) UILabel *song;
 @property(nonatomic, strong) UILabel *artist;
@@ -142,6 +145,8 @@ static CGFloat AURLineAlpha(NSInteger distance) {
     self.aura=[CAGradientLayer layer]; self.aura.colors=@[(id)AURAccent().CGColor,(id)UIColor.blackColor.CGColor];
     self.aura.startPoint=CGPointMake(0,0);self.aura.endPoint=CGPointMake(1,1);
     [self.view.layer insertSublayer:self.aura atIndex:0];
+    self.living=[[AURLivingArtwork alloc] initWithFrame:self.view.bounds];self.living.autoresizingMask=UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
+    [self.view insertSubview:self.living atIndex:0];
     self.navigationItem.leftBarButtonItem=[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemClose target:self action:@selector(close)];
     self.navigationItem.rightBarButtonItem=[[UIBarButtonItem alloc] initWithImage:[UIImage systemImageNamed:@"slider.horizontal.3"] style:UIBarButtonItemStylePlain target:self action:@selector(settings)];
     self.navigationItem.rightBarButtonItem.accessibilityLabel=@"Aurora settings";
@@ -234,6 +239,14 @@ static CGFloat AURLineAlpha(NSInteger distance) {
     }
     self.aura.colors=[AURPreferences boolForKey:@"black"]?@[(id)UIColor.blackColor.CGColor,(id)UIColor.blackColor.CGColor]:@[(id)[color colorWithAlphaComponent:.75].CGColor,(id)[UIColor colorWithWhite:.025 alpha:1].CGColor];
     self.sideways.gradient.colors=self.aura.colors;
+    // Living artwork replaces the gradient when there is real cover art to work with.
+    BOOL living=[AURPreferences boolForKey:@"livingArtwork"]&&![AURPreferences boolForKey:@"black"]&&[AURPlayback.shared.info[MPMediaItemPropertyArtwork] isKindOfClass:MPMediaItemArtwork.class]&&image.CGImage;
+    BOOL motion=[AURPreferences boolForKey:@"motion"];
+    self.aura.hidden=living;self.sideways.gradient.hidden=living;
+    for(AURLivingArtwork *view in @[self.living,self.sideways.living?:self.living]){
+        view.hidden=!living;
+        if(living){[view setArtwork:image];[view setAnimating:motion];}
+    }
 }
 - (void)update {
     NSDictionary *info=AURPlayback.shared.info;
@@ -370,8 +383,8 @@ static CGFloat AURLineAlpha(NSInteger distance) {
 #pragma mark Settings
 
 @implementation AURSettingsController
-static NSArray<NSArray<NSString *> *> *AURSettingKeys(void) { return @[@[@"launcher",@"motion",@"artworkColor",@"black"],@[@"onlineLyrics",@"lockLyrics",@"sideways"]]; }
-static NSArray<NSArray<NSString *> *> *AURSettingNames(void) { return @[@[@"Floating launcher",@"Animated background",@"Colors from artwork",@"True black background"],@[@"Find lyrics online",@"Lyrics on lock screen",@"Sideways lyrics"]]; }
+static NSArray<NSArray<NSString *> *> *AURSettingKeys(void) { return @[@[@"launcher",@"motion",@"livingArtwork",@"artworkColor",@"black"],@[@"onlineLyrics",@"lockLyrics",@"sideways"]]; }
+static NSArray<NSArray<NSString *> *> *AURSettingNames(void) { return @[@[@"Floating launcher",@"Animated background",@"Living artwork",@"Colors from artwork",@"True black background"],@[@"Find lyrics online",@"Lyrics on lock screen",@"Sideways lyrics"]]; }
 - (void)viewDidLoad { [super viewDidLoad];self.title=@"Aurora Settings";self.overrideUserInterfaceStyle=UIUserInterfaceStyleDark; }
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {return 3;}
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {return section<2?(NSInteger)AURSettingKeys()[section].count:3;}
@@ -379,7 +392,7 @@ static NSArray<NSArray<NSString *> *> *AURSettingNames(void) { return @[@[@"Floa
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     return @[@"If the floating button is hidden, hold two fingers on Spotify for one second to open Aurora. Motion respects Reduce Motion.",
              @"Online lyrics come from LRCLIB (lrclib.net); Aurora sends it the song’s title, artist, album and length. Lock-screen lyrics show the line being sung as the now-playing artwork. Sideways lyrics appear when you turn your phone while Aurora is open.",
-             @"Aurora 0.2.0 • Independent experimental UI tweak. Spotify remains responsible for playback."][section];
+             @"Aurora 0.3.0 • Independent experimental UI tweak. Spotify remains responsible for playback."][section];
 }
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)path {
     UITableViewCell *cell=[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:nil];

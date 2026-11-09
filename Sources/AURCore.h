@@ -67,6 +67,12 @@ void AURLockScreenStart(void (*setter)(NSDictionary *info));
 - (BOOL)seek:(NSTimeInterval)seconds;
 @end
 
+/// The album cover, blurred and colour-boosted, slowly flowing behind the player.
+@interface AURLivingArtwork : UIView
+- (void)setArtwork:(nullable UIImage *)image;
+- (void)setAnimating:(BOOL)animating;
+@end
+
 @interface AURPlayerController : UIViewController
 @end
 @interface AURSettingsController : UITableViewController
