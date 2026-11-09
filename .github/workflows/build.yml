@@ -105,9 +105,15 @@ jobs:
       - name: Commit small copies to the screenshots branch
         run: |
           mkdir -p out
-          for f in shots/*.png; do
-            convert "$f" -resize '640x640>' -quality 82 "out/$(basename "${f%.png}").jpg"
-          done
+          python3 -m pip install --quiet pillow
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          for path in Path('shots').glob('*.png'):
+              image = Image.open(path).convert('RGB')
+              image.thumbnail((640, 640))
+              image.save(Path('out') / f'{path.stem}.jpg', quality=82)
+          PY
           ls -la out
           git config user.name 'Aurora screenshots'
           git config user.email 'actions@users.noreply.github.com'
