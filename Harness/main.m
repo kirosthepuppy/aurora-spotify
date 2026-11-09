@@ -60,7 +60,9 @@ static UIImage *AURDemoArtwork(void) {
     NSInteger index=[AURLyrics.shared lineAtTime:AURPlayback.shared.elapsed];
     NSArray<AURLyricLine *> *lines=AURLyrics.shared.lines;
     UIImage *image=index>=0?AURLockScreenImage(AURDemoArtwork(),lines[index].text,index+1<(NSInteger)lines.count?lines[index+1].text:nil):AURDemoArtwork();
-    UIImageView *background=[[UIImageView alloc] initWithImage:image];background.contentMode=UIViewContentModeScaleAspectFill;
+    // iOS shows now-playing artwork as a square; preview it the same way.
+    UIImageView *background=[[UIImageView alloc] initWithImage:image];background.contentMode=UIViewContentModeScaleAspectFit;
+    background.layer.cornerRadius=22;background.clipsToBounds=YES;
     background.translatesAutoresizingMaskIntoConstraints=NO;[self.view addSubview:background];
     UILabel *clock=[UILabel new];clock.text=@"9:41";clock.font=[UIFont systemFontOfSize:86 weight:UIFontWeightSemibold];clock.textColor=[UIColor colorWithWhite:1 alpha:.92];
     clock.translatesAutoresizingMaskIntoConstraints=NO;[self.view addSubview:clock];
@@ -70,8 +72,8 @@ static UIImage *AURDemoArtwork(void) {
     title.font=[UIFont systemFontOfSize:15 weight:UIFontWeightSemibold];title.textColor=UIColor.whiteColor;title.translatesAutoresizingMaskIntoConstraints=NO;
     [card.contentView addSubview:title];
     [NSLayoutConstraint activateConstraints:@[
-        [background.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],[background.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [background.topAnchor constraintEqualToAnchor:self.view.topAnchor],[background.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [background.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:14],[background.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-14],
+        [background.heightAnchor constraintEqualToAnchor:background.widthAnchor],[background.bottomAnchor constraintEqualToAnchor:card.topAnchor constant:-14],
         [clock.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],[clock.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:24],
         [card.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:14],[card.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-14],
         [card.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-90],[card.heightAnchor constraintEqualToConstant:84],

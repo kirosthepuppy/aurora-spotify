@@ -193,7 +193,7 @@ static CGFloat AURLineAlpha(NSInteger distance) {
     [center addObserver:self selector:@selector(applyAppearance) name:AURSettingsChanged object:nil];
     [center addObserver:self selector:@selector(orientationChanged) name:UIDeviceOrientationDidChangeNotification object:nil];
     [AURLyrics shared];
-    [self applyAppearance]; [self update]; [self lyricsChanged];
+    [self applyAppearance]; [self lyricsChanged]; [self update];
 }
 - (void)viewDidLayoutSubviews { [super viewDidLayoutSubviews];self.aura.frame=self.view.bounds;[self layoutSideways]; }
 - (void)viewWillAppear:(BOOL)animated {
@@ -264,10 +264,12 @@ static CGFloat AURLineAlpha(NSInteger distance) {
     self.seekBar.enabled=duration>0;
     NSString *clock=[NSString stringWithFormat:@"%ld:%02ld                                  %ld:%02ld",(long)elapsed/60,(long)elapsed%60,(long)duration/60,(long)duration%60];
     if(![self.clock.text isEqualToString:clock])self.clock.text=clock;
-    NSInteger line=[AURLyrics.shared lineAtTime:elapsed];
+    // Use this controller's own copy of the lines so the index always matches the table.
+    NSInteger line=-1;
+    for(NSUInteger i=0;i<self.lines.count;i++){if(self.lines[i].time<=elapsed)line=(NSInteger)i;else break;}
     if(line!=self.activeLine){
         self.activeLine=line;[self.lyrics reloadData];
-        if(line>=0&&!self.lyrics.dragging&&!self.lyrics.decelerating)[self.lyrics scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:line inSection:0] atScrollPosition:UITableViewScrollPositionMiddle animated:!UIAccessibilityIsReduceMotionEnabled()];
+        if(line>=0&&line<[self.lyrics numberOfRowsInSection:0]&&!self.lyrics.dragging&&!self.lyrics.decelerating)[self.lyrics scrollToRowAtIndexPath:[NSIndexPath indexPathForRow:line inSection:0] atScrollPosition:UITableViewScrollPositionMiddle animated:!UIAccessibilityIsReduceMotionEnabled()];
     }
     if(line>=0&&line<(NSInteger)self.lines.count){
         UITableViewCell *cell=[self.lyrics cellForRowAtIndexPath:[NSIndexPath indexPathForRow:line inSection:0]];

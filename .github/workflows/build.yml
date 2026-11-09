@@ -59,6 +59,10 @@ jobs:
           sips -r 270 build/screens/sideways.png >/dev/null
           cat build/screens/player.log
           grep -q 'Aurora parser checks passed' build/screens/player.log || { echo '::error::Harness parser checks did not pass.'; exit 1; }
+          if grep -l -E 'Terminating app|uncaught exception|Assertion failure' build/screens/*.log; then
+            cat build/screens/*.log
+            echo '::error::The harness crashed on at least one screen (see the logs above).'; exit 1
+          fi
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
         with:
