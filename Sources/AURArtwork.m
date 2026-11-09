@@ -42,7 +42,14 @@ static UIImage *AURPrepareArtwork(UIImage *image) {
         for (NSUInteger i = 0; i < AURBlobCount; i++) {
             CALayer *blob = [CALayer layer];
             blob.contentsGravity = kCAGravityResizeAspectFill;
-            blob.opacity = i == 0 ? 1 : .8;
+            blob.opacity = i == 0 ? 1 : .85;
+            // A radial mask fades each copy to soft round edges, so no straight edge ever shows.
+            CAGradientLayer *mask = [CAGradientLayer layer];
+            mask.type = kCAGradientLayerRadial;
+            mask.colors = @[(id)UIColor.blackColor.CGColor, (id)UIColor.blackColor.CGColor, (id)UIColor.clearColor.CGColor];
+            mask.locations = @[@0, @.45, @1];
+            mask.startPoint = CGPointMake(.5, .5); mask.endPoint = CGPointMake(1, 1);
+            blob.mask = mask;
             [self.layer addSublayer:blob];
             [blobs addObject:blob];
         }
@@ -58,11 +65,12 @@ static UIImage *AURPrepareArtwork(UIImage *image) {
     [super layoutSubviews];
     [CATransaction begin]; [CATransaction setDisableActions:YES];
     CGRect bounds = self.bounds;
-    CGFloat side = MAX(bounds.size.width, bounds.size.height) * 1.35;
+    CGFloat side = MAX(bounds.size.width, bounds.size.height) * 1.5;
     CGPoint anchors[AURBlobCount] = {{.3, .25}, {.78, .32}, {.25, .78}, {.75, .8}};
     for (NSUInteger i = 0; i < AURBlobCount; i++) {
         self.blobs[i].bounds = CGRectMake(0, 0, side * (i == 0 ? 1.2 : .9), side * (i == 0 ? 1.2 : .9));
         self.blobs[i].position = CGPointMake(bounds.size.width * anchors[i].x, bounds.size.height * anchors[i].y);
+        self.blobs[i].mask.frame = self.blobs[i].bounds;
     }
     self.shade.frame = bounds;
     [CATransaction commit];
@@ -72,6 +80,15 @@ static UIImage *AURPrepareArtwork(UIImage *image) {
     if (image == self.source) return;
     self.source = image;
     UIImage *prepared = AURPrepareArtwork(image);
+    // Fill behind the soft copies with the cover's own average colour, a little darker.
+    if (prepared.CGImage) {
+        unsigned char rgba[4] = {0};
+        CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+        CGContextRef context = CGBitmapContextCreate(rgba, 1, 1, 8, 4, space, kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+        if (context) { CGContextDrawImage(context, CGRectMake(0, 0, 1, 1), prepared.CGImage); CGContextRelease(context); }
+        CGColorSpaceRelease(space);
+        self.backgroundColor = [UIColor colorWithRed:rgba[0] / 255.0 * .6 green:rgba[1] / 255.0 * .6 blue:rgba[2] / 255.0 * .6 alpha:1];
+    }
     CATransition *fade = [CATransition animation];
     fade.type = kCATransitionFade; fade.duration = UIAccessibilityIsReduceMotionEnabled() ? 0 : .8;
     for (NSUInteger i = 0; i < AURBlobCount; i++) {
