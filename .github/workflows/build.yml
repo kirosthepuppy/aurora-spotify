@@ -9,6 +9,10 @@ on:
         description: 'Package your IPA from the SPOTIFY_IPA_URL repository secret'
         type: boolean
         default: false
+      update_screens:
+        description: 'Commit the harness screenshots to the screenshots branch'
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -86,3 +90,31 @@ jobs:
           name: Spotify-Aurora-unsigned
           path: build/Spotify-Aurora-unsigned.ipa
           retention-days: 1
+  screenshots:
+    if: github.event_name == 'workflow_dispatch' && inputs.update_screens
+    needs: native
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Aurora-screenshots
+          path: shots
+      - name: Commit small copies to the screenshots branch
+        run: |
+          mkdir -p out
+          for f in shots/*.png; do
+            convert "$f" -resize '640x640>' -quality 82 "out/$(basename "${f%.png}").jpg"
+          done
+          ls -la out
+          git config user.name 'Aurora screenshots'
+          git config user.email 'actions@users.noreply.github.com'
+          git switch --orphan screenshots-update
+          git rm -rq --cached . 2>/dev/null || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git ! -name out -exec rm -rf {} +
+          mv out/*.jpg . && rmdir out
+          git add *.jpg
+          git commit -qm "Harness screenshots from ${GITHUB_SHA::7}"
+          git push -f origin HEAD:screenshots
